@@ -41,8 +41,10 @@ const FormularioRestaurante = () => {
         <TextField value={nomeRestaurante} 
             onChange={evento => setNomeRestaurante(evento.target.value)} 
             label="Nome do Restaurante" 
-            variant="standard" />
-        <Button type="submit" variant="outlined">Salvar</Button>
+            variant="standard"
+            fullWidth
+            required />
+        <Button sx={{ marginTop: 1 }} type="submit" fullWidth variant="outlined">Salvar</Button>
     </form>)
 }
 
