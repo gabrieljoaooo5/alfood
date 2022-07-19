@@ -1,16 +1,21 @@
 import { Box, Button, FormControl, InputLabel, MenuItem, Select, TextField, Typography } from "@mui/material"
 import { useEffect, useState } from "react"
+import { useParams } from "react-router-dom"
 import http from "../../../http"
+import IPrato from "../../../interfaces/IPrato"
 import IRestaurante from "../../../interfaces/IRestaurante"
 import ITag from "../../../interfaces/ITag"
 
 const FormularioPrato = () => {
 
+    const parametros = useParams()
+
+
     const [nomePrato, setNomePrato] = useState('')
     const [descricao, setDescricao] = useState('')
 
     const [tag, setTag] = useState('')
-    const [restaurante, setRestaurante] = useState('')
+    const [restaurante, setRestaurante] = useState(0)
 
     const [imagem, setImagem] = useState<File | null>(null)
 
@@ -24,13 +29,25 @@ const FormularioPrato = () => {
             .then(resposta => setRestaurantes(resposta.data))
     }, [])
 
+    useEffect(() => {
+        if (parametros.id) {
+            http.get<IPrato>(`pratos/${parametros.id}/`)
+                .then(resposta => { 
+                    setNomePrato(resposta.data.nome)
+                    setDescricao(resposta.data.descricao)
+                    setTag(resposta.data.tag)
+                    setRestaurante(resposta.data.restaurante)
+                })
+        }
+    }, [parametros])
+
     const selecionarArquivo = (evento: React.ChangeEvent<HTMLInputElement>) => {
         if (evento.target.files?.length) {
             setImagem(evento.target.files[0])
         } else {
             setImagem(null)
         }
-    }   
+    }
 
     const aoSubmeterForm = (evento: React.FormEvent<HTMLFormElement>) => {
         evento.preventDefault()
@@ -42,26 +59,34 @@ const FormularioPrato = () => {
 
         formData.append('tag', tag)
 
-        formData.append('restaurante', restaurante)
+        formData.append('restaurante', restaurante.toString())
 
-        if (imagem) {
+        if (!parametros.id && imagem) {
             formData.append('imagem', imagem)
         }
 
+        const url = parametros.id ? `pratos/${parametros.id}/` : 'pratos/'
+        const method = parametros.id ? 'PUT' : 'POST'
+
         http.request({
-            url: 'pratos/',
-            method: 'POST',
+            url,
+            method,
             headers: {
                 'Content-Type': 'multipart/form-data'
             },
             data: formData
         })
             .then(() => {
-                setNomePrato('')
-                setDescricao('')
-                setTag('')
-                setRestaurante('')
-                alert('Prato cadastrado com sucesso!')
+                if (parametros.id) {
+                    alert('Prato atualizado com sucesso!')                    
+                } else {
+                    setNomePrato('')
+                    setDescricao('')
+                    setTag('')
+                    setRestaurante(0)
+                    alert('Prato cadastrado com sucesso!')
+                    setImagem(null)
+                }
             })
             .catch(erro => console.log(erro))
 
@@ -101,14 +126,14 @@ const FormularioPrato = () => {
 
                 <FormControl margin="dense" fullWidth >
                     <InputLabel id="select-restaurante">Restaurante</InputLabel>
-                    <Select labelId="select-restaurante" value={restaurante} onChange={evento => setRestaurante(evento.target.value)}>
+                    <Select labelId="select-restaurante" value={restaurante} onChange={evento => setRestaurante(Number(evento.target.value))}>
                         {restaurantes.map(restaurante => <MenuItem key={restaurante.id} value={restaurante.id}>
                             {restaurante.nome}
                         </MenuItem>)}
                     </Select>
                 </FormControl>
 
-                <input type="file" onChange={selecionarArquivo}/>
+                {!parametros.id && <input type="file" onChange={selecionarArquivo} />}
 
                 <Button sx={{ marginTop: 1 }} type="submit" fullWidth variant="outlined">Salvar</Button>
             </Box>
